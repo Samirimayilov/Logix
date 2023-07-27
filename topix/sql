@@ -1,0 +1,27 @@
+create table university4 (
+idn int primary key ,
+name nvarchar(10),
+location nvarchar(10)
+)
+--Mallar table-i duzeltmek;   Id,Ad,kod,barkod,olcu vahidin idsi,tipinin idsi,qrupun idsi,satis qiymet,alis qiymeti,qeyd sutunlari olacaq
+create table mallar (
+idn int primary key,
+ad nvarchar(10),
+kod int,
+barkod nvarchar(20),
+olcu_id int,
+type_id int,
+qrup_id int,
+satis_qiy int,
+alis_qiy int )
+
+select * from mallar;
+
+--Musteriler table-i duzeltmek.;   Ad,telefon,unvan,email sutunlarindan ibaret olacaq.
+create table  musteriller (
+idn int primary key,
+ad nvarchar(10),
+Tel int,
+Unvan nvarchar(10),
+email nvarchar(10) 
+)
