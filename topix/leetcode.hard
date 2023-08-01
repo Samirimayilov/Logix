@@ -1,0 +1,113 @@
+--Average Salary.sql
+
+with t1 as (
+select left(pay_date,7) as pay_month, avg(amount) over(partition by month(pay_date),department_id) as dep_avg,
+avg(amount) over(partition by month(pay_date))as comp_avg,department_id
+from salary s join employee e on s.employee_id = e.employee_id)
+select distinct pay_month, department_id, 
+case
+	when dep_avg>comp_avg then 'higher'
+	when dep_avg =comp_avg then 'same'
+	else 'lower'
+	end as comparison
+from t1
+order by pay_month desc
+
+--Cumulative Salary.sql
+
+with t1 as (select * , max (month) over ( partition by id) as recent
+from Employee1)
+select id, month , sum(salary) over(partition by id order by month) as salaryy
+from t1
+where Month < recent
+order by id, month desc
+
+--Department top three salaries.sql
+
+select a.department,a.employee,a.salary
+	from (select d.name as department, e.name as employee,e.salary as salary ,
+DENSE_RANK() over( partition by d.name order by salary desc) as rk
+from employee2 e join Department1 d 
+on e.DepartmentId = d.Id) as a
+where rk <4
+
+--Find median given frequency of numbers.sql
+
+	WITH T1 as (
+select *,
+sum(frequency) over(order by number) as cum_sum, (sum(frequency) over())/2 as middle
+from numbers)
+
+select avg(number) as median
+from t1
+where middle between (cum_sum - Frequency) and cum_sum
+
+--Find the quiet students in the exam.sql
+with cte as(
+	select student_id from (
+select * , max(score) over(partition by exam_id) as max,
+min(score) over(partition by exam_id ) as min
+from exam) as a
+where score = a.max or score = a.min)
+select distinct s.student_id ,student_name from student s join exam e
+on s.student_id =e.student_id
+where s.student_id != all( select student_id from cte)
+order by student_id
+
+--Game Play Analysis 5.sql
+
+WITH next AS (
+    SELECT *,
+           MIN(event_date) OVER (PARTITION BY player_id) AS install_date,
+           LEAD(event_date, 1) OVER (PARTITION BY player_id ORDER BY event_date) AS nxt
+    FROM Activity
+)
+SELECT
+    install_date,
+    COUNT(DISTINCT player_id) AS installs,
+    round(SUM(CASE WHEN nxt = DATEADD(day, 1, event_date) THEN 1 ELSE 0 END)*1.0 / COUNT(DISTINCT player_id),2)  AS Day1_retention
+FROM next
+GROUP BY install_date;
+
+--Human traffic of stadium.sql
+WITH consecutive_rows AS (
+    SELECT *,id- ROW_NUMBER() OVER (ORDER BY id) AS group_num
+    FROM stadium
+	where people>100
+)
+SELECT id, visit_date, people
+FROM consecutive_rows c
+left join(
+select group_num,count(*) as total
+from consecutive_rows
+group by group_num) as s
+on s.group_num = c.group_num
+where s.total>= 3
+
+--Market Analysis 2.sql
+
+	with fa as (
+select u.user_id,
+case when rs.item_brand = u.favorite_brand  then 'yes'
+else 'no'
+end as item_fav_brand
+from  users2 u left join
+(select o.item_id,seller_id, item_brand , rank() over(partition by seller_id order by order_date) as rk
+from Orders2 o join Items2 i 
+on o.item_id = i.item_id) as rs
+on rs.seller_id = u.user_id
+where rs.rk = 2
+)
+select u.user_id, coalesce(item_fav_brand,'no') as '2nd_item_fav_brand'
+from Users2 as u left join fa 
+on fa.user_id = u.user_id
+
+
+--Median Employee Salary.sql
+
+select distinct id,company,salary
+from(
+select * , row_number() over(partition by company order by salary) as rk,
+count(*) over(partition by company) as cte
+from employee7) as s
+where rk between cte/2 and cte/2+1
