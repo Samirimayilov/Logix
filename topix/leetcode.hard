@@ -182,3 +182,94 @@ PIVOT (
     min(name)
     FOR continent IN ([America], [Asia], [Europe])
 ) AS PivotTable;
+
+--Total sales amount by year.sql Tables product114 sales114 
+
+select *
+from (
+
+        select s.product_id, product_name, '2018' as report_year, 
+               case when year(period_end)>= 2019 then average_daily_sales * (datediff(day,period_start,'2018-12-31')+1)
+                    end as total_amount
+        from sales114 s left join product114 p on s.product_id = p.product_id
+        where year(period_start) = 2018
+        union
+        select s.product_id, product_name,'2019' as report_year, 
+               case when year(period_start) = 2018 and year(period_end) = 2019 then average_daily_sales * datediff(day,'2019-01-01',period_end)
+                    when year(period_start) = 2018 and year(period_end) = 2020 then average_daily_sales * 365
+                    when year(period_start) = 2019 and year(period_end) = 2019 then average_daily_sales * (datediff(day,period_start,period_end)+1)
+                    when year(period_start) = 2019 and year(period_end) = 2020 then average_daily_sales *(datediff(day,period_start,'2019-12-31')+1)
+                    end as total_amount
+        from sales114 s left join product114 p on s.product_id = p.product_id
+        where year(period_start) < 2020 and year(period_end) > 2018
+        union
+        select s.product_id, product_name,'2020' as report_year, 
+               case when year(period_start) < 2020 then average_daily_sales * day(period_end)
+                    when year(period_start) = 2020 then average_daily_sales * (day(period_end) - day(period_start) + 1)
+                    end as total_amount
+        from sales114 s left join product114 p on s.product_id = p.product_id
+        where year(period_end) = 2020
+) a
+order by product_id, report_year
+
+--Tournament Winners.sql tables players matches2
+with t as (select 
+	first_player,sum(first_score) total
+from
+(select 
+	first_player,first_score
+from Matches2
+union all
+select 
+	second_player,second_score
+from Matches2)a
+group by first_player),
+t2 as(
+select *,coalesce(total,0) tt
+from Players p left join t
+on p.player_id =t.first_player)
+select group_id,player_id from (select *, row_number() over(partition by group_id order by tt desc,first_player) rk from t2) K
+where rk =1 
+
+--Trips and Users.sql tables users98 trips98
+with t as (select Request_at,count(*) cc
+from trips98
+where Driver_Id in ( select Users_Id from users98 where Banned != 'Yes')
+and Client_Id in ( select users_id from users98 where Banned != 'Yes')
+and request_at between '2013-10-01' and '2013-10-03'
+group by Request_at),
+t2 as (select Request_at,count(*) tt
+from trips98
+where Driver_Id in ( select Users_Id from users98 where Banned != 'Yes')
+and Client_Id in ( select users_id from users98 where Banned != 'Yes')
+and request_at between '2013-10-01' and '2013-10-03'
+and status != 'Completed'
+group by Request_at)
+select t.Request_at, coalesce(round(tt*1.0 /cc,2),0) rate
+from t left join t2 
+on t.Request_at = t2.Request_at
+
+
+--User purchase platform.sql tables spending
+
+select distinct q.spend_date,q.plat_form,ISNULL(amount,0) total_amount, ISNULL(g,0) total_users
+from ( 
+select a.spend_date, a.USER_ID,  a.amount, cc, (case when cc =2 then 'both' else platform end ) as platform, g from (
+select spend_date, USER_ID, sum(amount) amount, count(user_id) as cc  , count(distinct user_id) as g
+from Spending
+group by user_id, spend_date) a
+join Spending s
+on a.user_id =s.user_id and a.spend_date =s.spend_date) H
+right join  (SELECT DISTINCT spend_date, 'desktop' AS plat_form
+  FROM spending
+  UNION
+  SELECT DISTINCT spend_date, 'mobile' AS plat_form
+  FROM spending
+  UNION
+  SELECT DISTINCT spend_date, 'both' AS plat_form
+  FROM spending) q
+  ON q.spend_date = H.spend_date AND q.plat_form = h.platform
+  order by q.spend_date,q.plat_form desc
+
+
+
