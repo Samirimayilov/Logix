@@ -1,4 +1,4 @@
---Average Salary.sql
+--Average Salary.sql tables salary, employee
 
 with t1 as (
 select left(pay_date,7) as pay_month, avg(amount) over(partition by month(pay_date),department_id) as dep_avg,
@@ -13,7 +13,7 @@ case
 from t1
 order by pay_month desc
 
---Cumulative Salary.sql
+--Cumulative Salary.sql tables employee1
 
 with t1 as (select * , max (month) over ( partition by id) as recent
 from Employee1)
@@ -22,7 +22,7 @@ from t1
 where Month < recent
 order by id, month desc
 
---Department top three salaries.sql
+--Department top three salaries.sql tables employee2 , department1
 
 select a.department,a.employee,a.salary
 	from (select d.name as department, e.name as employee,e.salary as salary ,
@@ -31,7 +31,7 @@ from employee2 e join Department1 d
 on e.DepartmentId = d.Id) as a
 where rk <4
 
---Find median given frequency of numbers.sql
+--Find median given frequency of numbers.sql tables numbers
 
 	WITH T1 as (
 select *,
@@ -42,7 +42,7 @@ select avg(number) as median
 from t1
 where middle between (cum_sum - Frequency) and cum_sum
 
---Find the quiet students in the exam.sql
+--Find the quiet students in the exam.sql tables student exam
 with cte as(
 	select student_id from (
 select * , max(score) over(partition by exam_id) as max,
@@ -54,7 +54,7 @@ on s.student_id =e.student_id
 where s.student_id != all( select student_id from cte)
 order by student_id
 
---Game Play Analysis 5.sql
+--Game Play Analysis 5.sql tables activity
 
 WITH next AS (
     SELECT *,
@@ -69,7 +69,7 @@ SELECT
 FROM next
 GROUP BY install_date;
 
---Human traffic of stadium.sql
+--Human traffic of stadium.sql tables staduim
 WITH consecutive_rows AS (
     SELECT *,id- ROW_NUMBER() OVER (ORDER BY id) AS group_num
     FROM stadium
@@ -84,7 +84,7 @@ group by group_num) as s
 on s.group_num = c.group_num
 where s.total>= 3
 
---Market Analysis 2.sql
+--Market Analysis 2.sql tables orders2 items2 users2
 
 	with fa as (
 select u.user_id,
@@ -103,7 +103,7 @@ from Users2 as u left join fa
 on fa.user_id = u.user_id
 
 
---Median Employee Salary.sql
+--Median Employee Salary.sql tables employee7
 
 select distinct id,company,salary
 from(
@@ -112,21 +112,21 @@ count(*) over(partition by company) as cte
 from employee7) as s
 where rk between cte/2 and cte/2+1
 
---Number of transactions per visit.sql
-WITH  t1 AS(SELECT a.visit_date,
-                           COALESCE(num_visits,0) as num_visits,
-                           COALESCE(num_trans,0) as num_trans
-                    FROM ((
-                          SELECT visit_date, user_id, COUNT(*) as num_visits
-                          FROM visits
-                          GROUP BY user_id,visit_date) AS a
-                         LEFT JOIN
-                          ( SELECT transaction_date,
-                                 user_id,
-                                 count(*) as num_trans
-                            FROM transactions
-							group by transaction_date,user_id) AS b
-                         ON a.visit_date = b.transaction_date and a.user_id = b.user_id) ),
+--Number of transactions per visit.sql tables transactions , visits
+	WITH  t1 AS(SELECT a.visit_date,
+	                           COALESCE(num_visits,0) as num_visits,
+	                           COALESCE(num_trans,0) as num_trans
+	                    FROM ((
+	                          SELECT visit_date, user_id, COUNT(*) as num_visits
+	                          FROM visits
+	                          GROUP BY user_id,visit_date) AS a
+	                         LEFT JOIN
+	                          ( SELECT transaction_date,
+	                                 user_id,
+	                                 count(*) as num_trans
+	                            FROM transactions
+								group by transaction_date,user_id) AS b
+	                         ON a.visit_date = b.transaction_date and a.user_id = b.user_id) ),
 
               t2 AS (SELECT MAX(num_trans) as trans
                         FROM t1
@@ -142,3 +142,43 @@ SELECT t2.trans as transactions_count,
                     GROUP BY num_trans) AS a
 ON a.transactions_count = t2.trans
 ORDER BY t2.trans
+
+--Report contiguous dates.sql tables succeeded , failed
+
+select 'successed' as period_state, min(success_date) as start_date, max(success_date) as end_date
+from ( select *, ROW_NUMBER() over(order by Success_date) as rk from Succeeded 
+where success_date between '2019-01-01' and '2019-12-31') t
+group by day(success_date) - rk
+union
+select 'failed' as period_state, min(fail_date) as start_date, max(fail_date) as end_date
+from ( select *, ROW_NUMBER() over(order by fail_date) as rk from failed 
+where fail_date between '2019-01-01' and '2019-12-31') t
+group by day(fail_date) - rk
+order by 2 
+
+--Sales by day of the week.sql
+SELECT
+    i.item_category AS Category,
+    SUM(CASE WHEN DATEPART(WEEKDAY, o.order_date) = 2 THEN o.quantity ELSE 0 END) AS Monday,
+    SUM(CASE WHEN DATEPART(WEEKDAY, o.order_date) = 3 THEN o.quantity ELSE 0 END) AS Tuesday,
+    SUM(CASE WHEN DATEPART(WEEKDAY, o.order_date) = 4 THEN o.quantity ELSE 0 END) AS Wednesday,
+    SUM(CASE WHEN DATEPART(WEEKDAY, o.order_date) = 5 THEN o.quantity ELSE 0 END) AS Thursday,
+    SUM(CASE WHEN DATEPART(WEEKDAY, o.order_date) = 6 THEN o.quantity ELSE 0 END) AS Friday,
+    SUM(CASE WHEN DATEPART(WEEKDAY, o.order_date) = 7 THEN o.quantity ELSE 0 END) AS Saturday,
+    SUM(CASE WHEN DATEPART(WEEKDAY, o.order_date) = 1 THEN o.quantity ELSE 0 END) AS Sunday
+FROM Orders o
+JOIN Items i ON o.item_id = i.item_id
+GROUP BY i.item_category
+ORDER BY i.item_category;
+
+--Students report by geography.sql tables student105
+
+SELECT [America], [Asia], [Europe]
+FROM (
+    SELECT name, continent , ROW_NUMBER() over(partition by continent order by name) rk
+    FROM student105
+) AS SourceTable
+PIVOT (
+    min(name)
+    FOR continent IN ([America], [Asia], [Europe])
+) AS PivotTable;
