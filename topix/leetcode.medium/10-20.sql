@@ -47,3 +47,25 @@ when operator = '=' and t.leftval = t.rightval then 'True'
 else 'False'
 end as a
 from t
+--Exchange Seats.sql seat
+select ROW_NUMBER() over( order by ( case when id%2=1 then id+1 else id-1 end)) as id, student from seat
+--Find the start and end number of continuous ranges.sql Logs80
+select min(log_id) as start_id, max(log_id) as end_id from (
+select *, log_id-ROW_NUMBER() over(order by log_id) as rk from Logs80) a
+group by rk
+--Friend Requests 2.sql request_accepted60
+select top 1 accepter_id , count(*) cc from 
+(select accepter_id,accept_date
+from request_accepted60
+union all
+select requester_id,accept_date
+from request_accepted60)a 
+group by accepter_id
+order by cc desc
+--Game Play Analysis 3.sql Activity
+select player_id,event_date, sum(games_played) over(partition by player_id order by event_date) s
+from Activity
+--Game Play Analysis 4.sql Activity
+select round( sum( case when datediff(day,install_date,s)=1 then 1 else 0 end ) *1.0/ count(distinct player_id),2) from(
+select player_id, lead(event_date,1) over(partition by player_id  order by event_date) s, min(event_date) over(partition by player_id) as install_date
+from Activity) a
