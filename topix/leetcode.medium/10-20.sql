@@ -1,5 +1,11 @@
---Countries you can safely invest in.sql
-with t as(select *, left(phone_number,3) as cc
+--Count student number in departments.sql student87 department87 
+with t as (select distinct dept_id , count(*) over (partition by dept_id) cc
+from student87)
+select dept_name, coalesce(cc,0)
+from department87 d left join t
+on d.dept_id = t.dept_id
+--Countries you can safely invest in.sql Calls Country Person
+with t as(select *, left(phone_number,3) as cc 
 from Person),
 t2 as (
 select callee_id, duration
