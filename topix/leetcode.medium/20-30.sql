@@ -45,4 +45,47 @@ from orders2
 where YEAR(order_date) = 2019
 group by buyer_id) a
 on u.user_id = a.buyer_id
---
+--Monthly Transaction 2.sql
+with trans_tbl as(
+select left( trans_date, 8) as month, country,
+count(*) as approved_count,
+sum(amount) as approved_anount
+from transactions2
+where state= 'approved'
+group by left( trans_date, 8),
+country),
+charge_tbl as(
+select left( c.trans_date, 8) as month, country,
+count(*) as chargeback_count,
+sum(amount) as chargeback_amount
+from Chargebacks c join Transactions2 t
+on c.trans_id = t.id
+group by left( c.trans_date, 8),
+country),
+jj as (
+select MONTH , country from trans_tbl
+union 
+select month, country from charge_tbl)
+select jj.month, jj.country,
+ISNULL(approved_count,0),
+ISNULL(approved_anount,0),
+ISNULL(chargeback_count,0),
+ISNULL(chargeback_amount,0)
+from jj left join trans_tbl t
+on jj.month = t.month  and jj.country = t.country
+left join charge_tbl c
+on jj.month = c.month  and jj.country = c.country
+--Monthly Transactions 1.sql
+with t as (
+select LEFT(trans_date,7) month, country, count(distinct id) trans_count, sum(amount) as trans_total_amount 
+from Transactions3
+group by LEFT(trans_date,7) , country),
+t1 as (
+select LEFT(trans_date,7) month, country, count(distinct id) approved_count, sum(amount) as approved_total_count 
+from Transactions3
+where state = 'approved'
+group by LEFT(trans_date,7) , country)
+select t.month,t.country,trans_count,approved_count,trans_total_amount,approved_total_count
+from t join t1
+on t.month = t1.month and t1.country = t.country
+order by month,country desc
