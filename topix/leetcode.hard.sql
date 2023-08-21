@@ -273,3 +273,20 @@ right join  (SELECT DISTINCT spend_date, 'desktop' AS plat_form
 
 
 
+WITH all_spend AS(
+	SELECT spend_date, user_id,MAX(platform) as Platform, SUM(amount) as Amount FROM spending
+	GROUP BY spend_date, user_id 
+	having count(distinct platform)=1
+	UNION ALL
+	SELECT spend_date, user_id,'both' as Platform, SUM(amount) as Amount FROM spending
+	GROUP BY spend_date, user_id 
+	having count(distinct platform)=2
+	UNION ALL
+	SELECT spend_date,null as user_id, 'both' as Platform, 0 as Amount FROM spending
+	GROUP BY spend_date, user_id 
+) 
+SELECT spend_date, platform, SUM(amount) as TotalAmount, count(distinct user_id) As TotalUsers
+FROM all_spend
+GROUP BY spend_date, platform
+ORDER BY spend_date,platform desc
+
