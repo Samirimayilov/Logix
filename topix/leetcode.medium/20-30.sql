@@ -89,3 +89,31 @@ select t.month,t.country,trans_count,approved_count,trans_total_amount,approved_
 from t join t1
 on t.month = t1.month and t1.country = t.country
 order by month,country desc
+
+--Movie Rating.sql
+select * from(
+select top 1 u.name from Movie_Rating5 m join Users5 u 
+on m.user_id = u.user_id
+group by u.user_id,u.name
+order by name, COUNT(*)) A
+union 
+select * from (
+select top 1 o.title as name from Movie_Rating5 m join Movies5 o
+on m.movie_id = o.movie_id
+where left(m.created_at,7) = '2020-02'
+group by title
+order by avg(rating) ) a
+
+--Page Recommnedations.sql
+with t as (
+select distinct user1_id user1, user2_id friend from (
+select user1_id,user2_id
+from Friendship
+union all
+select user2_id, user1_id
+from Friendship) a)
+select distinct page_id 
+from Likes l join t
+on l.user_id = t.user1
+where user_id in (select friend from t where user1 = 1)
+and page_id not in ( select page_id from Likes where user_id = 1)
