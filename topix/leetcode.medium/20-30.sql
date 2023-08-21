@@ -117,3 +117,19 @@ from Likes l join t
 on l.user_id = t.user1
 where user_id in (select friend from t where user1 = 1)
 and page_id not in ( select page_id from Likes where user_id = 1)
+
+--Product Price at a given date.sql
+with t as 
+(select product_id,max(new_price) maxp 
+from Products
+where change_date <= '2019-08-16'
+group by product_id)
+select distinct p.product_id,ISNULL(t.maxp,10) as price from Products p left join t
+on p.product_id = t.product_id
+
+
+--Product Sales Analysis 3.sql
+select s.product_id , year , quantity , price from (
+select *,RANK() over(partition by product_id order by year) rk from sales9) s join Product9 p 
+on s.product_id = p.product_id
+where rk = 1
