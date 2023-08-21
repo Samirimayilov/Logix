@@ -133,3 +133,10 @@ select s.product_id , year , quantity , price from (
 select *,RANK() over(partition by product_id order by year) rk from sales9) s join Product9 p 
 on s.product_id = p.product_id
 where rk = 1
+
+--Project Employees 3.sql
+select project_id, employee_id from (
+select project_id,e.employee_id , experience_years, RANK() over(partition by project_id order by experience_years desc ) rk
+from Project26 p join Employee26 e
+on p.employee_id = e.employee_id) a
+where rk = 1 
